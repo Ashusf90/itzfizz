@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scroll Car Animation | Itzfizz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; background: #d1d1d1; font-family: "Helvetica Neue", Arial, sans-serif; overflow-x: hidden; }
+  .stage { position: relative; height: 100vh; overflow: hidden; }
+  .road { position: absolute; left: 0; right: 0; top: 50%; height: 25vh; transform: translateY(-50%); background: #1e1e1e; }
+  .layer { position: absolute; inset: 0; display: flex; align-items: center; padding-left: 5vw; }
+  .layer.green { background: #74d886; clip-path: inset(0 100% 0 0); will-change: clip-path; }
+  .headline { margin: 0; font-weight: 800; font-size: 10.6vw; line-height: 1; letter-spacing: .06em; white-space: nowrap; }
+  .layer.dark .headline { color: #3b3b3b; }
+  .layer.green .headline { color: #111; }
+  .ch { display: inline-block; will-change: transform, opacity; }
+  .car { position: absolute; left: 0; top: 50%; width: clamp(300px, 41vw, 700px); transform: translate3d(0, -50%, 0); will-change: transform; z-index: 5; }
+  .card { position: absolute; border-radius: 14px; padding: 2.2vh 2.1vw; opacity: 0; will-change: transform, opacity; }
+  .card b { display: block; font-size: clamp(2.2rem, 4.4vw, 4.4rem); line-height: 1.05; }
+  .card span { display: block; margin-top: .6vh; font-size: clamp(.8rem, 1.25vw, 1.25rem); }
+  .top { top: 16%; } .bottom { bottom: 15%; }
+  @media (max-width: 700px) {
+    .headline { font-size: 12vw; }
+    .card { padding: 1.4vh 3vw; }
+    .c1 { left: 6vw !important; } .c2 { left: 52vw !important; }
+    .c3 { left: 6vw !important; } .c4 { left: 52vw !important; }
+    .card b { font-size: 2rem; } .card span { font-size: .75rem; }
+  }
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <div class="card top c1"  style="left:49%;background:#e3f56b;color:#111"><b>58%</b><span>Increase in pick up point use</span></div>
+  <div class="card top c2"  style="left:70.5%;background:#2f2f2f;color:#fff"><b>27%</b><span>Faster order pickups</span></div>
+  <div class="card bottom c3" style="left:42.3%;background:#86c8f7;color:#111"><b>23%</b><span>Decreased in customer phone calls</span></div>
+  <div class="card bottom c4" style="left:64.9%;background:#e97b3f;color:#111"><b>40%</b><span>Fewer support tickets</span></div>
+
+  <div class="road">
+    <div class="layer dark"><h1 class="headline" aria-label="Welcome Itzfizz"></h1></div>
+    <div class="layer green" id="green" aria-hidden="true"><div class="headline"></div></div>
+  </div>
+
+  <!-- Top-down supercar, nose pointing right -->
+  <svg class="car" id="car" viewBox="0 0 440 200" role="img" aria-label="Orange supercar seen from above">
+    <rect x="70" y="2" width="34" height="14" rx="5" fill="#141414"/><rect x="70" y="184" width="34" height="14" rx="5" fill="#141414"/>
+    <rect x="290" y="2" width="34" height="14" rx="5" fill="#141414"/><rect x="290" y="184" width="34" height="14" rx="5" fill="#141414"/>
+    <path d="M8 100 C8 50 20 22 60 16 L250 12 C330 12 400 40 428 84 C434 94 434 106 428 116 C400 160 330 188 250 188 L60 184 C20 178 8 150 8 100Z" fill="#e6863b"/>
+    <path d="M14 70 C4 80 4 120 14 130 L34 130 C28 110 28 90 34 70Z" fill="#1c1c1c"/>
+    <path d="M52 100 L74 66 L190 46 L270 46 C310 52 328 76 328 100 C328 124 310 148 270 154 L190 154 L74 134Z" fill="#4b4b4b"/>
+    <path d="M52 100 L74 66 L120 60 L120 140 L74 134Z" fill="#1d1d1d"/>
+    <path d="M250 50 C300 56 322 78 322 100 C322 122 300 144 250 150Z" fill="#111"/>
+    <path d="M262 62 C296 68 312 84 312 100 C312 116 296 132 262 138Z" fill="#7a7a7a" opacity=".7"/>
+    <path d="M340 62 L372 82" stroke="#111" stroke-width="7" stroke-linecap="round"/><path d="M340 138 L372 118" stroke="#111" stroke-width="7" stroke-linecap="round"/>
+    <path d="M232 14 L246 0 L262 12Z M232 186 L246 200 L262 188Z" fill="#c9702c"/>
+  </svg>
+</main>
+
+<div class="h-[10vh]"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+// Build letter spans in both headline layers
+const TEXT = "WELCOME ITZFIZZ";
+document.querySelectorAll(".headline").forEach(h => {
+  h.innerHTML = [...TEXT].map(c => `<span class="ch">${c === " " ? "&nbsp;" : c}</span>`).join("");
+});
+
+const car = document.getElementById("car");
+const green = document.getElementById("green");
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const proxy = { p: 0 };
+let vw, carW;
+
+// Scroll-driven render: car translateX + green reveal follow the same progress value
+function render() {
+  const x = proxy.p * (vw - carW * 0.25);
+  gsap.set(car, { x });
+  const front = Math.min(vw, x + carW * 0.86);
+  green.style.clipPath = `inset(0 ${(100 - (front / vw) * 100).toFixed(2)}% 0 0)`;
+}
+function measure() { vw = innerWidth; carW = car.getBoundingClientRect().width; render(); }
+measure();
+addEventListener("resize", () => { measure(); ScrollTrigger.refresh(); });
+
+// 1) Intro animation on load
+const intro = gsap.timeline({ defaults: { ease: "power3.out" } });
+if (!reduce) {
+  intro
+    .from(".ch", { y: 40, opacity: 0, duration: 0.9, stagger: 0.05 })
+    .to(".c1, .c3", { opacity: 1, y: 0, duration: 0.8, stagger: 0.25 }, "-=0.4")
+    .from(".c1, .c3", { y: 30, duration: 0.8, stagger: 0.25 }, "<");
+} else {
+  gsap.set(".card", { opacity: 1 });
+}
+
+// 2) Scroll animation, pinned and scrubbed (scrub:1 = smoothed interpolation)
+const tl = gsap.timeline({
+  scrollTrigger: { trigger: "#stage", start: "top top", end: "+=250%", pin: true, scrub: 1, invalidateOnRefresh: true }
+});
+tl.to(proxy, { p: 1, ease: "none", duration: 1, onUpdate: render }, 0)
+  .fromTo(".c2", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.15, ease: "power2.out" }, 0.3)
+  .fromTo(".c4", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.15, ease: "power2.out" }, 0.45);
+</script>
+</body>
+</html>
